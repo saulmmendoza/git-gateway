@@ -98,7 +98,7 @@ func (gl *GitLabGateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := gl.authenticate(w, r); err != nil {
-		handleError(unauthorizedError(err.Error()), w, r)
+		handleError(unauthorizedError("%s", err.Error()), w, r)
 		return
 	}
 
@@ -128,6 +128,24 @@ func (gl *GitLabGateway) authenticate(w http.ResponseWriter, r *http.Request) er
 
 	if !gitlabAllowedRegexp.MatchString(r.URL.Path) {
 		return errors.New("Access to endpoint not allowed: this part of GitLab's API has been restricted")
+	}
+
+	if len(config.AcceptContentPaths) > 0 {
+		// e.g. /gitlab/repository/files/packages/site1
+		prefixFiles := "/gitlab/repository/files/"
+		prefixTree := "/gitlab/repository/tree/"
+
+		if strings.HasPrefix(r.URL.Path, prefixFiles) {
+			contentPath := strings.TrimPrefix(r.URL.Path, prefixFiles)
+			if !isPathAllowed(config.AcceptContentPaths, contentPath) {
+				return errors.New("Access to endpoint not allowed: content path is restricted")
+			}
+		} else if strings.HasPrefix(r.URL.Path, prefixTree) {
+			contentPath := r.URL.Query().Get("path")
+			if !isPathAllowed(config.AcceptContentPaths, contentPath) {
+				return errors.New("Access to endpoint not allowed: content path is restricted")
+			}
+		}
 	}
 
 	if len(config.Roles) == 0 {

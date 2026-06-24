@@ -1,0 +1,6 @@
+Let's make sure Forgejo instances are supported in multi-instance.
+What does `loadInstanceConfig` or `UpdateInstance` do?
+`api/instance.go` handles `Instance` models, they have JSON parsing into `Configuration`.
+If `Configuration` has `Forgejo`, it automatically gets parsed from JSON (since it has json tag). So it's supported out of the box!
+Wait, `api/settings.go` returns roles.
+Let me check `api/settings.go`

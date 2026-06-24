@@ -1,0 +1,10 @@
+Review points to fix:
+1. `isPathAllowed` missing `path.Clean` and bypass vulnerabilities:
+   - In `gitlab.go`, `?path=packages/site1/../../secret` bypasses `strings.HasPrefix`.
+   - In `gitlab.go` if `contentPath` is empty it bypasses the check.
+   - In `bitbucket.go`, if parts are < 5, it bypasses the check.
+   Need to enforce path cleaning and restrict root access when `accept_content_paths` is configured.
+2. Missing `@scalar/astro` and `@unpic/astro` plugins. And `@scalar/api-reference` missing.
+   - Need to properly install them and configure them. The previous attempt had peer dependency issues with `@scalar/astro`.
+   - Need to fix peer dependencies.
+   - Need to properly load `openapi.yml`.

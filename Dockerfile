@@ -1,4 +1,4 @@
-FROM golang:1.22.3
+FROM golang:1.26
 
 ADD . /go/src/github.com/netlify/git-gateway
 

@@ -1,0 +1,34 @@
+We need to add AcceptContentPaths to Configuration.
+In `conf/configuration.go`:
+Add `AcceptContentPaths []string` to the `Configuration` struct.
+
+In `api/github.go`, `api/gitlab.go`, `api/bitbucket.go`, `api/forgejo.go`:
+Add a check in the `authenticate` or proxy director logic to restrict access if `config.AcceptContentPaths` is set.
+Where should the check go?
+Wait, if it restricts access to paths, it should only apply to *content* endpoints, not to `/pulls` or `/git/refs`.
+The issue says:
+```
+accept_content_paths:
+  - packages/site1
+```
+"I would like to be able to pass specific paths to git-gateway in order to restrict a user from site1 to only content of site1, something like:
+/repos/:owner/:name/git/
+/repos/:owner/:name/contents/packages/site1 # restrict to site1 dir only
+/repos/:owner/:name/pulls/
+/repos/:owner/:name/branches/"
+
+Wait, the user wants `accept_content_paths` to restrict `contents/` endpoints and `git/`?
+If `AcceptContentPaths` is set, and the route is a content route, we should verify the path using `path.Match`.
+
+Let's look at the routes again:
+GitHub:
+`^/github/((git|contents|pulls|branches|merges|statuses|compare|commits)/?|(issues/(\\d+)/labels))`
+Content routes are `/github/contents/<filepath>`
+What about `/github/git/trees/<sha>`? We can't match it because it uses a SHA, not a path. Does the CMS use `/git/` or `/contents/` for tree browsing? CMS uses both depending on the backend config. But if they just wanted `accept_content_paths` to restrict `contents/` and similar paths, let's parse the path.
+
+For GitHub:
+`/github/contents/(.*)` -> the path is `$1`
+Wait, does CMS use `/github/git/blobs/`? Yes.
+Can we restrict `git/blobs`? Probably not since there is no path.
+Let's see what the issue says: `accept_content_paths: - packages/site1`. And the example says `/repos/:owner/:name/contents/packages/site1 # restrict to site1 dir only`.
+So it's checking if the path in the URL matches the allowed paths.
