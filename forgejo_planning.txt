@@ -1,0 +1,21 @@
+Tasks:
+1. Add forgejo support (with multi instance too)
+   - Add ForgejoGateway based on swagger json
+   - Update config struct to support forgejo
+   - Support multi-instance too? (Needs to integrate with multi-instance flow). Wait, how does multi-instance work?
+   - Wait, `if globalConfig.MultiInstanceMode { ... }` in `api/api.go` and `Configuration` vs `GlobalConfiguration`.
+   - `Configuration` has `JWT`, `GitHub`, `GitLab`, `BitBucket`, `Roles`. Need to add `Forgejo ForgejoConfig`
+2. Update all dependencies to their latest versions
+   - Update `go.mod` dependencies.
+   - Update `golang` version in `Dockerfile`.
+   - Run tests.
+3. Add monorepo support using the key `accept_content_paths` (array of strings with wildcard support)
+   - Issue says: `accept_content_routes` in issue body, but description says `accept_content_paths`. I should use `accept_content_paths`.
+   - Wait, how do I restrict `accept_content_paths` for GitHub/GitLab/BitBucket? In `api/github.go`, `api/gitlab.go` there's a check `allowedRegexp`.
+   - `accept_content_paths` will be part of `Configuration`.
+   - Wait, where does the `Configuration` get parsed? In `conf/configuration.go` `Configuration` struct.
+4. Create openapi.yml file
+   - Create an openapi.yml based on current endpoints (mostly proxy endpoints, settings, health, etc.).
+   - Include Forgejo, GitHub, GitLab, BitBucket proxies and the `MultiInstanceMode` operator API.
+5. Add documentation
+   - Starlight integration + plugins.

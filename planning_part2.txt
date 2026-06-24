@@ -1,0 +1,27 @@
+For accept_content_paths:
+We need to check the path against the wildcards in `config.AcceptContentPaths`.
+Wait, this is an array of strings with wildcard support.
+Wait, `accept_content_paths` isn't in `config.Roles`. We should add `AcceptContentPaths []string` to `Configuration`.
+Where are the paths accessed?
+In github: `^/github/contents/`
+In gitlab: `^/gitlab/repository/files/` or `^/gitlab/repository/tree/` ? Wait, netlify CMS uses `accept_content_paths` to restrict where a user can read/write files.
+In the github gateway, `r.URL.Path` corresponds to the endpoint. `r.URL.Path` looks like `/github/contents/packages/site1`.
+If `config.AcceptContentPaths` is configured, and it's a content route, we must verify the path matches.
+But wait, what about `git/trees`? What about `git/blobs`? Netlify CMS might access them directly by SHA, which doesn't have a path.
+Wait, the issue says:
+"I would like to be able to pass specific paths to git-gateway in order to restrict a user from site1 to only content of site1, something like:
+/repos/:owner/:name/git/
+/repos/:owner/:name/contents/packages/site1 # restrict to site1 dir only
+/repos/:owner/:name/pulls/
+/repos/:owner/:name/branches/
+...
+accept_content_paths:
+  - packages/site1"
+
+So the path checking for github should apply to `/github/contents/` and probably `/github/git/trees/` (wait, trees use SHA, it's hard to restrict by path unless we do deep git logic which git-gateway doesn't do. The issue literally says `restrict content access to those paths only`).
+So for Github: `/github/contents/` is restricted.
+What if it's GitLab? `/gitlab/repository/files/` and `/gitlab/repository/tree/`.
+What about BitBucket? `/bitbucket/src/`.
+What about Forgejo? `/forgejo/contents/` (Forgejo has `/api/v1/repos/{owner}/{repo}/contents/{filepath}`)
+
+Let's ask the user about `accept_content_paths` implementation details to confirm.

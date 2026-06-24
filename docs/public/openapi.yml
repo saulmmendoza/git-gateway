@@ -1,0 +1,124 @@
+openapi: 3.0.0
+info:
+  title: Git Gateway API
+  version: 1.0.0
+  description: Secure role based access to the APIs of common Git Hosting providers.
+
+servers:
+  - url: /
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                  name:
+                    type: string
+                  description:
+                    type: string
+
+  /settings:
+    get:
+      summary: Get configuration settings
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  github_enabled:
+                    type: boolean
+                  gitlab_enabled:
+                    type: boolean
+                  bitbucket_enabled:
+                    type: boolean
+                  forgejo_enabled:
+                    type: boolean
+                  roles:
+                    type: array
+                    items:
+                      type: string
+
+  /github/{proxyPath}:
+    x-proxy: true
+    get:
+      summary: Proxy request to GitHub API
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: proxyPath
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+
+  /gitlab/{proxyPath}:
+    x-proxy: true
+    get:
+      summary: Proxy request to GitLab API
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: proxyPath
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+
+  /bitbucket/{proxyPath}:
+    x-proxy: true
+    get:
+      summary: Proxy request to BitBucket API
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: proxyPath
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+
+  /forgejo/{proxyPath}:
+    x-proxy: true
+    get:
+      summary: Proxy request to Forgejo API
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: proxyPath
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

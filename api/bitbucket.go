@@ -120,7 +120,7 @@ func (bb *BitBucketGateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := bb.authenticate(w, r); err != nil {
-		handleError(unauthorizedError(err.Error()), w, r)
+		handleError(unauthorizedError("%s", err.Error()), w, r)
 		return
 	}
 
@@ -154,6 +154,22 @@ func (bb *BitBucketGateway) authenticate(w http.ResponseWriter, r *http.Request)
 
 	if !bitbucketAllowedRegexp.MatchString(r.URL.Path) {
 		return errors.New("Access to endpoint not allowed: this part of BitBucket's API has been restricted")
+	}
+
+	if len(config.AcceptContentPaths) > 0 {
+		prefix := "/bitbucket/src/"
+		if strings.HasPrefix(r.URL.Path, prefix) {
+			// Path could be /bitbucket/src/<commit>/<path>
+			// We need to extract <path>
+			parts := strings.SplitN(r.URL.Path, "/", 5)
+			contentPath := ""
+			if len(parts) >= 5 {
+				contentPath = parts[4]
+			}
+			if !isPathAllowed(config.AcceptContentPaths, contentPath) {
+				return errors.New("Access to endpoint not allowed: content path is restricted")
+			}
+		}
 	}
 
 	if len(config.Roles) == 0 {

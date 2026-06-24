@@ -9,25 +9,25 @@ import (
 	"regexp"
 )
 
-// GitHubGateway acts as a proxy to GitHub
-type GitHubGateway struct {
+// ForgejoGateway acts as a proxy to Forgejo
+type ForgejoGateway struct {
 	proxy *httputil.ReverseProxy
 }
 
-var pathRegexp = regexp.MustCompile("^/github/?")
-var allowedRegexp = regexp.MustCompile("^/github/((git|contents|pulls|branches|merges|statuses|compare|commits)/?|(issues/(\\d+)/labels))")
+var forgejoPathRegexp = regexp.MustCompile("^/forgejo/?")
+var forgejoAllowedRegexp = regexp.MustCompile("^/forgejo/((git|contents|pulls|branches|merges|statuses|compare|commits)/?|(issues/(\\d+)/labels))")
 
-func NewGitHubGateway() *GitHubGateway {
-	return &GitHubGateway{
+func NewForgejoGateway() *ForgejoGateway {
+	return &ForgejoGateway{
 		proxy: &httputil.ReverseProxy{
-			Director:     director,
-			Transport:    &GitHubTransport{},
+			Director:     forgejoDirector,
+			Transport:    &ForgejoTransport{},
 			ErrorHandler: proxyErrorHandler,
 		},
 	}
 }
 
-func director(r *http.Request) {
+func forgejoDirector(r *http.Request) {
 	ctx := r.Context()
 	target := getProxyTarget(ctx)
 	accessToken := getAccessToken(ctx)
@@ -36,7 +36,7 @@ func director(r *http.Request) {
 	r.Host = target.Host
 	r.URL.Scheme = target.Scheme
 	r.URL.Host = target.Host
-	r.URL.Path = singleJoiningSlash(target.Path, pathRegexp.ReplaceAllString(r.URL.Path, "/"))
+	r.URL.Path = singleJoiningSlash(target.Path, forgejoPathRegexp.ReplaceAllString(r.URL.Path, "/"))
 	if targetQuery == "" || r.URL.RawQuery == "" {
 		r.URL.RawQuery = targetQuery + r.URL.RawQuery
 	} else {
@@ -51,35 +51,35 @@ func director(r *http.Request) {
 	}
 
 	log := getLogEntry(r)
-	log.Infof("Proxying to GitHub: %v", r.URL.String())
+	log.Infof("Proxying to Forgejo: %v", r.URL.String())
 }
 
-func (gh *GitHubGateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (fj *ForgejoGateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	config := getConfig(ctx)
-	if config == nil || config.GitHub.AccessToken == "" {
-		handleError(notFoundError("No GitHub Settings Configured"), w, r)
+	if config == nil || config.Forgejo.AccessToken == "" {
+		handleError(notFoundError("No Forgejo Settings Configured"), w, r)
 		return
 	}
 
-	if err := gh.authenticate(w, r); err != nil {
+	if err := fj.authenticate(w, r); err != nil {
 		handleError(unauthorizedError("%s", err.Error()), w, r)
 		return
 	}
 
-	endpoint := config.GitHub.Endpoint
-	apiURL := singleJoiningSlash(endpoint, "/repos/"+config.GitHub.Repo)
+	endpoint := config.Forgejo.Endpoint
+	apiURL := singleJoiningSlash(endpoint, "/api/v1/repos/"+config.Forgejo.Repo)
 	target, err := url.Parse(apiURL)
 	if err != nil {
-		handleError(internalServerError("Unable to process GitHub endpoint"), w, r)
+		handleError(internalServerError("Unable to process Forgejo endpoint"), w, r)
 		return
 	}
 	ctx = withProxyTarget(ctx, target)
-	ctx = withAccessToken(ctx, config.GitHub.AccessToken)
-	gh.proxy.ServeHTTP(w, r.WithContext(ctx))
+	ctx = withAccessToken(ctx, config.Forgejo.AccessToken)
+	fj.proxy.ServeHTTP(w, r.WithContext(ctx))
 }
 
-func (gh *GitHubGateway) authenticate(w http.ResponseWriter, r *http.Request) error {
+func (fj *ForgejoGateway) authenticate(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	claims := getClaims(ctx)
 	config := getConfig(ctx)
@@ -88,13 +88,12 @@ func (gh *GitHubGateway) authenticate(w http.ResponseWriter, r *http.Request) er
 		return errors.New("Access to endpoint not allowed: no claims found in Bearer token")
 	}
 
-	if !allowedRegexp.MatchString(r.URL.Path) {
-		return errors.New("Access to endpoint not allowed: this part of GitHub's API has been restricted")
+	if !forgejoAllowedRegexp.MatchString(r.URL.Path) {
+		return errors.New("Access to endpoint not allowed: this part of Forgejo's API has been restricted")
 	}
 
 	if len(config.AcceptContentPaths) > 0 {
-		// e.g. /github/contents/packages/site1
-		prefix := "/github/contents/"
+		prefix := "/forgejo/contents/"
 		if strings.HasPrefix(r.URL.Path, prefix) {
 			contentPath := strings.TrimPrefix(r.URL.Path, prefix)
 			if !isPathAllowed(config.AcceptContentPaths, contentPath) {
@@ -123,12 +122,12 @@ func (gh *GitHubGateway) authenticate(w http.ResponseWriter, r *http.Request) er
 	return errors.New("Access to endpoint not allowed: your role doesn't allow access")
 }
 
-type GitHubTransport struct{}
+type ForgejoTransport struct{}
 
-func (t *GitHubTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+func (t *ForgejoTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	resp, err := http.DefaultTransport.RoundTrip(r)
 	if err == nil {
-		// remove CORS headers from GitHub and use our own
+		// remove CORS headers from Forgejo and use our own
 		resp.Header.Del("Access-Control-Allow-Origin")
 	}
 	return resp, err

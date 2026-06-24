@@ -18,6 +18,12 @@ type GitHubConfig struct {
 	Repo        string `envconfig:"REPO" json:"repo"` // Should be "owner/repo" format
 }
 
+type ForgejoConfig struct {
+	AccessToken string `envconfig:"ACCESS_TOKEN" json:"access_token,omitempty"`
+	Endpoint    string `envconfig:"ENDPOINT" json:"endpoint"`
+	Repo        string `envconfig:"REPO" json:"repo"` // Should be "owner/repo" format
+}
+
 type GitLabConfig struct {
 	AccessToken     string `envconfig:"ACCESS_TOKEN" json:"access_token,omitempty"`
 	AccessTokenType string `envconfig:"ACCESS_TOKEN_TYPE" json:"access_token_type"`
@@ -62,11 +68,13 @@ type GlobalConfiguration struct {
 
 // Configuration holds all the per-instance configuration.
 type Configuration struct {
-	JWT       JWTConfiguration `json:"jwt"`
-	GitHub    GitHubConfig     `envconfig:"GITHUB" json:"github"`
-	GitLab    GitLabConfig     `envconfig:"GITLAB" json:"gitlab"`
-	BitBucket BitBucketConfig  `envconfig:"BITBUCKET" json:"bitbucket"`
-	Roles     []string         `envconfig:"ROLES" json:"roles"`
+	JWT                JWTConfiguration `json:"jwt"`
+	GitHub             GitHubConfig     `envconfig:"GITHUB" json:"github"`
+	GitLab             GitLabConfig     `envconfig:"GITLAB" json:"gitlab"`
+	BitBucket          BitBucketConfig  `envconfig:"BITBUCKET" json:"bitbucket"`
+	Forgejo            ForgejoConfig    `envconfig:"FORGEJO" json:"forgejo"`
+	Roles              []string         `envconfig:"ROLES" json:"roles"`
+	AcceptContentPaths []string         `envconfig:"ACCEPT_CONTENT_PATHS" json:"accept_content_paths"`
 }
 
 func loadEnvironment(filename string) error {
