@@ -1,0 +1,12 @@
+The user requested adding GitHub pages deploy of the docs.
+This usually means setting up a `.github/workflows/deploy.yml` (or similar) action to build and deploy the Astro Starlight site to GitHub Pages.
+Looking at typical Astro GitHub Pages deploy actions:
+It should:
+- Checkout the repo
+- Setup Node
+- Install dependencies
+- Build the site (`npm run build`)
+- Upload the artifact
+- Deploy to GitHub Pages
+
+I will create this workflow file in `.github/workflows/deploy-docs.yml`.
